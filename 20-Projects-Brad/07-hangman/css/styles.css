@@ -1,0 +1,99 @@
+@import url("https://fonts.googleapis.com/css2?family=Lato&family=Open+Sans:wght@400;600&family=Questrial&display=swap");
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; }
+
+body {
+  background-color: #34495e;
+  color: #fff;
+  font-family: 'lato';
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+  overflow: hidden; }
+
+h1 {
+  margin: 20px 0; }
+
+.game-container {
+  padding: 20px 30px;
+  position: relative;
+  margin: auto;
+  height: 350px;
+  width: 450px; }
+  .game-container .figure-container {
+    fill: transparent;
+    stroke: #fff;
+    stroke-width: 4px;
+    stroke-linecap: round; }
+    .game-container .figure-container .figure-part {
+      display: none; }
+  .game-container .wrong-letters-container {
+    position: absolute;
+    top: 40px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    text-align: right; }
+    .game-container .wrong-letters-container p {
+      margin: 0 0 5px; }
+    .game-container .wrong-letters-container span {
+      font-size: 24px; }
+  .game-container .word {
+    display: flex;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%); }
+    .game-container .word .letter {
+      border-bottom: 3px solid #2980b9;
+      display: inline-flex;
+      font-size: 30px;
+      align-items: center;
+      justify-content: center;
+      margin: 0 5px;
+      height: 50px;
+      width: 30px; }
+
+.popup-container {
+  background-color: rgba(0, 0, 0, 0.3);
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: none;
+  justify-content: center;
+  align-items: center; }
+  .popup-container .popup {
+    background-color: #2980b9;
+    border-radius: 5px;
+    box-shadow: 0 15px 10px 3px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    text-align: center; }
+    .popup-container .popup button {
+      cursor: pointer;
+      background-color: #fff;
+      color: #2980b9;
+      border: none;
+      margin-top: 30px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 5px; }
+      .popup-container .popup button:active {
+        transform: scale(0.95); }
+      .popup-container .popup button:focus {
+        outline: 0; }
+
+.notification-container {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px 10px 0 0;
+  padding: 15px 20px;
+  position: absolute;
+  bottom: -100px;
+  transition: transform 0.3s ease-in-out; }
+  .notification-container.show {
+    transform: translateY(-100px); }
