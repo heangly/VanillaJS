@@ -451,18 +451,6 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-const recipeContainer = document.querySelector('.recipe');
-
-const timeout = s => {
-  return new Promise(function (_, reject) {
-    setTimeout(function () {
-      reject(new Error(`Request took too long! Timeout after ${s} second`));
-    }, s * 1000);
-  });
-}; // https://forkify-api.herokuapp.com/v2
-///////////////////////////////////////
-
-
 const controlRecipe = async () => {
   try {
     const id = window.location.hash.slice(1);
@@ -474,11 +462,16 @@ const controlRecipe = async () => {
 
     _recipeView.default.render(model.state.recipe);
   } catch (error) {
-    alert('Error controlRecipe', error);
+    _recipeView.default.renderError();
   }
+}; // Subscriber
+
+
+const init = () => {
+  _recipeView.default.addHandlerRender(controlRecipe);
 };
 
-['hashchange', 'load'].forEach(ev => window.addEventListener(ev, controlRecipe));
+init();
 },{"./model":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView":"bcae1aced0301b01ccacb3e6f7dfede8","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16"}],"aabf248f40f7693ef84a0cb99f385d1f":[function(require,module,exports) {
 "use strict";
 
@@ -486,7 +479,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.state = exports.loadRecipe = void 0;
-const BASE_URL = 'https://forkify-api.herokuapp.com/api/v2/recipes';
+
+var _config = require("./config");
+
+var _helpers = require("./helpers");
+
 const state = {
   recipe: {}
 };
@@ -494,9 +491,7 @@ exports.state = state;
 
 const loadRecipe = async id => {
   try {
-    const res = await fetch(`${BASE_URL}/${id}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(`${data.message} (${res.status})`);
+    const data = await (0, _helpers.getJSON)(_config.API_URL + '/' + id);
     const {
       recipe
     } = data.data;
@@ -510,14 +505,55 @@ const loadRecipe = async id => {
       cookingTime: recipe.cooking_time,
       ingredients: recipe.ingredients
     };
-    console.log(state.recipe);
   } catch (err) {
-    alert(err);
+    console.error(err);
+    throw err;
   }
 };
 
 exports.loadRecipe = loadRecipe;
-},{}],"bcae1aced0301b01ccacb3e6f7dfede8":[function(require,module,exports) {
+},{"./config":"09212d541c5c40ff2bd93475a904f8de","./helpers":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"09212d541c5c40ff2bd93475a904f8de":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.TIMEOUT_SEC = exports.API_URL = void 0;
+const API_URL = 'https://forkify-api.herokuapp.com/api/v2/recipes';
+exports.API_URL = API_URL;
+const TIMEOUT_SEC = 10;
+exports.TIMEOUT_SEC = TIMEOUT_SEC;
+},{}],"0e8dcd8a4e1c61cf18f78e1c2563655d":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getJSON = void 0;
+
+var _config = require("./config");
+
+const timeout = s => {
+  return new Promise(function (_, reject) {
+    setTimeout(function () {
+      reject(new Error(`Request took too long! Timeout after ${s} second`));
+    }, s * 1000);
+  });
+};
+
+const getJSON = async url => {
+  try {
+    const res = await Promise.race([fetch(url), timeout(_config.TIMEOUT_SEC)]);
+    const data = await res.json();
+    if (!res.ok) throw new Error(`${data.message} (${res.status})`);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+exports.getJSON = getJSON;
+},{"./config":"09212d541c5c40ff2bd93475a904f8de"}],"bcae1aced0301b01ccacb3e6f7dfede8":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -534,6 +570,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class RecipeView {
   #parentElement = document.querySelector('.recipe');
   #data = null;
+  #errorMessage = 'We could not find that recipe. Please try another one';
+  #successMessage = '';
 
   render(recipe) {
     this.#data = recipe;
@@ -556,6 +594,44 @@ class RecipeView {
     `;
     this.#clear();
     this.#parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  renderError() {
+    let message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.#errorMessage;
+    const markup = `
+        <div class="error">
+            <div>
+              <svg>
+                <use href="${_icons.default}#icon-alert-triangle"></use>
+              </svg>
+            </div>
+            <p>${message}</p>
+        </div>
+      `;
+    this.#clear();
+    this.#parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  renderSuccess() {
+    let message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.#successMessage;
+    const markup = `
+        <div class="message">
+          <div>
+            <svg>
+              <use href="${_icons.default}#icon-smile"></use>
+            </svg>
+          </div>
+          <p>${message}</p>
+        </div>
+      `;
+    this.#clear();
+    this.#parentElement.insertAdjacentHTML('afterbegin', markup);
+  } // Publisher
+
+
+  addHandlerRender(handler) {
+    ;
+    ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
   }
 
   #generateMarkup() {
