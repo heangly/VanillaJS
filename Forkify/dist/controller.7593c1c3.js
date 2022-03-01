@@ -447,6 +447,8 @@ var _searchView = _interopRequireDefault(require("./views/searchView"));
 
 var _resultsView = _interopRequireDefault(require("./views/resultsView"));
 
+var _paginationView = _interopRequireDefault(require("./views/paginationView"));
+
 require("regenerator-runtime");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -455,10 +457,9 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-if (module.hot) {
-  module.hot.accept();
-}
-
+// if (module.hot) {
+//   module.hot.accept()
+// }
 const controlRecipe = async () => {
   try {
     const id = window.location.hash.slice(1);
@@ -483,10 +484,18 @@ const controlSearchResults = async () => {
 
     await model.loadSearchResults(query);
 
-    _resultsView.default.render(model.state.search.results);
+    _resultsView.default.render(model.getSearchResultsPage());
+
+    _paginationView.default.render(model.state.search);
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
+};
+
+const controlPagination = gotoPage => {
+  _resultsView.default.render(model.getSearchResultsPage(gotoPage));
+
+  _paginationView.default.render(model.state.search);
 }; // Subscriber
 
 
@@ -494,16 +503,18 @@ const init = () => {
   _recipeView.default.addHandlerRender(controlRecipe);
 
   _searchView.default.addHandlerSearch(controlSearchResults);
+
+  _paginationView.default.addHandlerClick(controlPagination);
 };
 
 init();
-},{"./model":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView":"bcae1aced0301b01ccacb3e6f7dfede8","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./views/searchView":"c5d792f7cac03ef65de30cc0fbb2cae7","./views/resultsView":"eacdbc0d50ee3d2819f3ee59366c2773"}],"aabf248f40f7693ef84a0cb99f385d1f":[function(require,module,exports) {
+},{"./model":"aabf248f40f7693ef84a0cb99f385d1f","./views/recipeView":"bcae1aced0301b01ccacb3e6f7dfede8","core-js/modules/web.immediate.js":"140df4f8e97a45c53c66fead1f5a9e92","regenerator-runtime":"e155e0d3930b156f86c48e8d05522b16","./views/searchView":"c5d792f7cac03ef65de30cc0fbb2cae7","./views/resultsView":"eacdbc0d50ee3d2819f3ee59366c2773","./views/paginationView":"d2063f3e7de2e4cdacfcb5eb6479db05"}],"aabf248f40f7693ef84a0cb99f385d1f":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.state = exports.loadSearchResults = exports.loadRecipe = void 0;
+exports.state = exports.loadSearchResults = exports.loadRecipe = exports.getSearchResultsPage = void 0;
 
 var _config = require("./config");
 
@@ -512,8 +523,10 @@ var _helpers = require("./helpers");
 const state = {
   recipe: {},
   search: {
+    page: 1,
     query: '',
-    results: []
+    results: [],
+    resultsPerPage: _config.RESULT_PER_PAGE
   }
 };
 exports.state = state;
@@ -565,17 +578,29 @@ const loadSearchResults = async query => {
 };
 
 exports.loadSearchResults = loadSearchResults;
+
+const getSearchResultsPage = function () {
+  let page = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : state.search.page;
+  state.search.page = page;
+  const startItem = (state.search.page - 1) * state.search.resultsPerPage;
+  const endItem = state.search.page * state.search.resultsPerPage;
+  return state.search.results.slice(startItem, endItem);
+};
+
+exports.getSearchResultsPage = getSearchResultsPage;
 },{"./config":"09212d541c5c40ff2bd93475a904f8de","./helpers":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"09212d541c5c40ff2bd93475a904f8de":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.TIMEOUT_SEC = exports.API_URL = void 0;
+exports.TIMEOUT_SEC = exports.RESULT_PER_PAGE = exports.API_URL = void 0;
 const API_URL = 'https://forkify-api.herokuapp.com/api/v2/recipes/';
 exports.API_URL = API_URL;
 const TIMEOUT_SEC = 10;
 exports.TIMEOUT_SEC = TIMEOUT_SEC;
+const RESULT_PER_PAGE = 10;
+exports.RESULT_PER_PAGE = RESULT_PER_PAGE;
 },{}],"0e8dcd8a4e1c61cf18f78e1c2563655d":[function(require,module,exports) {
 "use strict";
 
@@ -3396,6 +3421,74 @@ class ResultsView extends _View.default {
 }
 
 var _default = new ResultsView();
+
+exports.default = _default;
+},{"./View":"61b7a1b097e16436be3d54c2f1828c73","url:../../img/icons.svg":"548642f69c6b596912b6f550cb31b822"}],"d2063f3e7de2e4cdacfcb5eb6479db05":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _View = _interopRequireDefault(require("./View"));
+
+var _icons = _interopRequireDefault(require("url:../../img/icons.svg"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+class PaginationView extends _View.default {
+  _parentElement = document.querySelector('.pagination');
+
+  addHandlerClick(handler) {
+    this._parentElement.addEventListener('click', e => {
+      const btn = e.target.closest('.btn--inline');
+      if (!btn) return;
+      const gotoPage = btn.dataset.goto;
+      handler(+gotoPage);
+    });
+  }
+
+  _generateMarkup() {
+    const currentPage = this._data.page;
+    const numPages = Math.ceil(this._data.results.length / this._data.resultsPerPage); // Page 1 and there are other pages
+
+    if (currentPage === 1 && numPages > 1) {
+      return this._generateButtonMarkup('next', 'right', currentPage + 1);
+    } // Last page
+
+
+    if (currentPage === numPages && numPages > 1) {
+      return this._generateButtonMarkup('prev', 'left', currentPage - 1);
+    } // other page
+
+
+    if (currentPage < numPages) {
+      const prevButtonMarkup = this._generateButtonMarkup('next', 'right', currentPage + 1);
+
+      const nextButtonMarkup = this._generateButtonMarkup('prev', 'left', currentPage - 1);
+
+      return prevButtonMarkup + nextButtonMarkup;
+    } // Page 1 , and there are no other pages
+
+
+    return '';
+  }
+
+  _generateButtonMarkup(paginationType, iconType, page) {
+    return `
+      <button data-goto=${page} class="btn--inline pagination__btn--${paginationType}">
+        <svg class="search__icon">
+          <use href="${_icons.default}#icon-arrow-${iconType}"></use>
+        </svg>
+        <span>Page ${page}</span>
+      </button>
+    `;
+  }
+
+}
+
+var _default = new PaginationView();
 
 exports.default = _default;
 },{"./View":"61b7a1b097e16436be3d54c2f1828c73","url:../../img/icons.svg":"548642f69c6b596912b6f550cb31b822"}]},{},["ed33d8c8a855e9f9ff4a41dcc173e2d5","5627726bd9b824d34e30973018330628","175e469a7ea7db1c8c0744d04372621f"], null)
