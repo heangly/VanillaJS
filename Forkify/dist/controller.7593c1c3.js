@@ -467,6 +467,8 @@ const controlRecipe = async () => {
 
     _recipeView.default.renderSpinner();
 
+    _resultsView.default.update(model.getSearchResultsPage());
+
     await model.loadRecipe(id);
 
     _recipeView.default.render(model.state.recipe);
@@ -496,11 +498,19 @@ const controlPagination = gotoPage => {
   _resultsView.default.render(model.getSearchResultsPage(gotoPage));
 
   _paginationView.default.render(model.state.search);
+};
+
+const controlServings = newServings => {
+  model.updateServings(newServings);
+
+  _recipeView.default.update(model.state.recipe);
 }; // Subscriber
 
 
 const init = () => {
   _recipeView.default.addHandlerRender(controlRecipe);
+
+  _recipeView.default.addUpdateServingsHandler(controlServings);
 
   _searchView.default.addHandlerSearch(controlSearchResults);
 
@@ -514,7 +524,7 @@ init();
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.state = exports.loadSearchResults = exports.loadRecipe = exports.getSearchResultsPage = void 0;
+exports.updateServings = exports.state = exports.loadSearchResults = exports.loadRecipe = exports.getSearchResultsPage = void 0;
 
 var _config = require("./config");
 
@@ -588,6 +598,15 @@ const getSearchResultsPage = function () {
 };
 
 exports.getSearchResultsPage = getSearchResultsPage;
+
+const updateServings = newServings => {
+  state.recipe.ingredients.forEach(ing => {
+    ing.quantity &&= ing.quantity * newServings / state.recipe.servings;
+  });
+  state.recipe.servings = newServings;
+};
+
+exports.updateServings = updateServings;
 },{"./config":"09212d541c5c40ff2bd93475a904f8de","./helpers":"0e8dcd8a4e1c61cf18f78e1c2563655d"}],"09212d541c5c40ff2bd93475a904f8de":[function(require,module,exports) {
 "use strict";
 
@@ -657,6 +676,15 @@ class RecipeView extends _View.default {
     ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
   }
 
+  addUpdateServingsHandler(handler) {
+    this._parentElement.addEventListener('click', e => {
+      const btn = e.target.closest('.btn--tiny');
+      if (!btn) return;
+      const updateTo = +btn.dataset.updateTo;
+      updateTo > 0 && handler(updateTo);
+    });
+  }
+
   _generateMarkup() {
     return `
         <figure class="recipe__fig">
@@ -682,12 +710,12 @@ class RecipeView extends _View.default {
             <span class="recipe__info-text">servings</span>
 
             <div class="recipe__info-buttons">
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--decrease-servings" data-update-to=${this._data.servings - 1}>
                 <svg>
                   <use href="${_icons.default}#icon-minus-circle"></use>
                 </svg>
               </button>
-              <button class="btn--tiny btn--increase-servings">
+              <button class="btn--tiny btn--increase-servings" data-update-to=${this._data.servings + 1}>
                 <svg>
                   <use href="${_icons.default}#icon-plus-circle"></use>
                 </svg>
@@ -1267,6 +1295,27 @@ class View {
     this._clear();
 
     this._parentElement.insertAdjacentHTML('afterbegin', markup);
+  }
+
+  update(data) {
+    this._data = data;
+
+    const newMarkup = this._generateMarkup();
+
+    const newDOM = document.createRange().createContextualFragment(newMarkup);
+    const newElements = Array.from(newDOM.querySelectorAll('*'));
+    const currElements = Array.from(this._parentElement.querySelectorAll('*'));
+    newElements.forEach((newEl, i) => {
+      const curEl = currElements[i];
+
+      if (!newEl.isEqualNode(curEl) && newEl.firstChild.nodeValue.trim() !== '') {
+        curEl.textContent = newEl.textContent;
+      }
+
+      if (!newEl.isEqualNode(curEl)) {
+        Array.from(newEl.attributes).forEach(attr => curEl.setAttribute(attr.name, attr.value));
+      }
+    });
   }
 
   _clear() {
@@ -3403,9 +3452,10 @@ class ResultsView extends _View.default {
   }
 
   _generateMarkupPreview(data) {
+    const id = window.location.hash.slice(1);
     return `
         <li class='preview'>
-          <a class='preview__link' href=#${data.id}>
+          <a class='preview__link ${data.id === id ? 'preview__link--active' : ''}' href=#${data.id}>
             <figure class='preview__fig'>
               <img src='${data.image}' alt=${data.title} />
             </figure>

@@ -16,6 +16,9 @@ const controlRecipe = async () => {
     if (!id) return
 
     recipeView.renderSpinner()
+
+    resultsView.update(model.getSearchResultsPage())
+
     await model.loadRecipe(id)
     recipeView.render(model.state.recipe)
   } catch (error) {
@@ -43,9 +46,15 @@ const controlPagination = (gotoPage) => {
   paginationView.render(model.state.search)
 }
 
+const controlServings = (newServings) => {
+  model.updateServings(newServings)
+  recipeView.update(model.state.recipe)
+}
+
 // Subscriber
 const init = () => {
   recipeView.addHandlerRender(controlRecipe)
+  recipeView.addUpdateServingsHandler(controlServings)
   searchView.addHandlerSearch(controlSearchResults)
   paginationView.addHandlerClick(controlPagination)
 }
